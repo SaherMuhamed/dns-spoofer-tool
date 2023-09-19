@@ -34,9 +34,6 @@ def args():
     return options
 
 
-option = args()
-
-
 def process_packet(packet):
     # print(packet.get_payload())  # all the packets that flow to our machine, it will get trapped in the queue that we
     # create, that's will not forward the packets to the target machine
@@ -66,10 +63,10 @@ def process_packet(packet):
 
 try:
     print("[+] Script is running...")
-    subprocess.call("iptables -I FORWARD -j NFQUEUE --queue-num " + option.queue_num, shell=True)  # adding rules to
+    subprocess.call("iptables -I FORWARD -j NFQUEUE --queue-num " + args().queue_num, shell=True)  # adding rules to
     # trap the packets
     queue = NetfilterQueue()
-    queue.bind(queue_num=7, user_callback=process_packet)
+    queue.bind(queue_num=int(args().queue_num), user_callback=process_packet)
     queue.run()
 except KeyboardInterrupt:
     print("\n[*] Detected 'ctrl + c' pressed, program terminated.")
