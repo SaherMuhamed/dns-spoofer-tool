@@ -37,11 +37,6 @@ def args():
 option = args()
 
 
-# host_ip = option.host_machine
-# domain = option.domain_name
-# queue_number = option.queue_num
-
-
 def process_packet(packet):
     # print(packet.get_payload())  # all the packets that flow to our machine, it will get trapped in the queue that we
     # create, that's will not forward the packets to the target machine
